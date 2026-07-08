@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 import json
 import os
 import shutil
+import re
 from database.connection import get_db
 from database.models import User, Resume, Settings
 from resume_parser.parser import extract_text_from_pdf, extract_text_from_docx, parse_resume_text
