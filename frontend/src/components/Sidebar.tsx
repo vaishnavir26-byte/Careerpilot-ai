@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, FileText, CheckSquare, BrainCircuit, Code2, 
-  Compass, CompassIcon, Globe, Settings, LogOut, Milestone
+  Compass, Globe, Settings, RotateCw, Milestone
 } from "lucide-react";
 
 const GithubIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -29,7 +29,7 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const pathname = usePathname();
 
-  const handleLogout = () => {
+  const handleResetWorkspace = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user_info");
     window.location.href = "/";
@@ -71,11 +71,11 @@ export default function Sidebar() {
 
       <div className="pt-4 border-t border-gray-800">
         <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all cursor-pointer"
+          onClick={handleResetWorkspace}
+          className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-amber-400 hover:bg-amber-500/10 hover:text-amber-300 transition-all cursor-pointer"
         >
-          <LogOut className="h-4.5 w-4.5" />
-          Logout
+          <RotateCw className="h-4.5 w-4.5" />
+          Reset Workspace
         </button>
       </div>
     </aside>

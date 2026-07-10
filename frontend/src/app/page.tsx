@@ -2,68 +2,24 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { BrainCircuit, Star, ArrowRight, Shield, Terminal, Zap } from "lucide-react";
+import { BrainCircuit, Star, Zap, AlertCircle, RotateCw } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [isRegister, setIsRegister] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    // If token exists, direct to dashboard
-    const token = localStorage.getItem("token");
-    if (token) {
-      router.push("/dashboard");
-    }
-  }, [router]);
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login";
-    const body = isRegister 
-      ? { email, password, full_name: fullName } 
-      : { email, password };
-
-    try {
-      const res = await fetch(`http://127.0.0.1:8000${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Authentication failed");
-
-      localStorage.setItem("token", data.access_token);
-      localStorage.setItem("user_info", JSON.stringify({
-        id: data.user_id,
-        email: data.email,
-        full_name: data.full_name,
-        readiness_score: data.readiness_score
-      }));
-      router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGuestMode = async () => {
+  const initializeGuestSession = async () => {
     setLoading(true);
     setError("");
     try {
       const res = await fetch("http://127.0.0.1:8000/api/auth/guest", {
         method: "POST"
       });
+      if (!res.ok) {
+        throw new Error("Could not initialize guest session");
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error("Could not initialize guest session");
 
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user_info", JSON.stringify({
@@ -74,11 +30,19 @@ export default function Home() {
       }));
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message);
-    } finally {
+      setError("Unable to connect to the backend API server. Please ensure the FastAPI backend is running on http://127.0.0.1:8000.");
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      router.push("/dashboard");
+    } else {
+      initializeGuestSession();
+    }
+  }, [router]);
 
   return (
     <main className="min-h-screen bg-[#030712] relative flex flex-col items-center justify-center p-6 overflow-hidden">
@@ -86,160 +50,91 @@ export default function Home() {
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 blur-[120px]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/10 blur-[120px]" />
 
-      <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
+      <div className="max-w-4xl w-full flex flex-col items-center text-center relative z-10 space-y-8">
         
-        {/* Left Side: Product Showcase */}
-        <div className="lg:col-span-7 space-y-6">
+        {/* Logo and Header */}
+        <div className="space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-xs font-semibold text-indigo-400">
             <BrainCircuit className="h-4 w-4" />
             Next-Gen Placement Preparation Platform
           </div>
 
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-none">
-            Master Your Career Path with{" "}
+          <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none text-white">
+            CareerPilot{" "}
             <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
-              CareerPilot AI
+              AI
             </span>
           </h1>
+        </div>
 
-          <p className="text-gray-400 text-lg max-w-xl">
-            Optimize your resume for ATS algorithms, practice mock interviews with real-time browser voice synthesis, evaluate GitHub repositories, and build structured 30/60/90-day learning roadmaps.
-          </p>
+        {/* Dynamic Card Container */}
+        <div className="w-full max-w-md">
+          {loading ? (
+            <div className="glass-card rounded-2xl p-8 border border-gray-800 shadow-2xl flex flex-col items-center justify-center space-y-6">
+              <div className="relative flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-indigo-500 border-r-2 border-indigo-500/30" />
+                <BrainCircuit className="absolute h-5 w-5 text-indigo-400 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-white">Initializing Workspace</h3>
+                <p className="text-sm text-gray-400">Setting up secure guest session & preparing dashboard...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="glass-card rounded-2xl p-8 border border-red-950/30 bg-red-950/10 shadow-2xl space-y-6 text-left">
+              <div className="flex items-center gap-3 text-red-400 border-b border-red-950/20 pb-4">
+                <AlertCircle className="h-6 w-6 shrink-0" />
+                <h3 className="text-lg font-bold">Backend Connection Failed</h3>
+              </div>
+              
+              <p className="text-sm text-gray-400 leading-relaxed">
+                We couldn&apos;t connect to the backend server. To launch the application, please make sure the FastAPI backend is running locally.
+              </p>
 
-          {/* Core Feature bullet grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-            <div className="flex items-start gap-3">
-              <div className="p-1 rounded bg-indigo-500/20 text-indigo-400 mt-1">
+              <div className="space-y-3">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">Startup Commands:</span>
+                <div className="bg-gray-950 border border-gray-900 rounded-lg p-4 font-mono text-xs text-gray-300 space-y-2 relative group select-all">
+                  <div className="text-indigo-400"># Navigate to the backend folder & run</div>
+                  <div>cd backend</div>
+                  <div>python main.py</div>
+                </div>
+              </div>
+
+              <button
+                onClick={initializeGuestSession}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-3 rounded-lg shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <RotateCw className="h-4 w-4" />
+                Retry Connection
+              </button>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Feature Highlights Grid */}
+        {!error && !loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl pt-6">
+            <div className="flex items-start gap-3 text-left p-3 rounded-lg bg-gray-900/40 border border-gray-800/40">
+              <div className="p-1.5 rounded bg-indigo-500/20 text-indigo-400 mt-0.5">
                 <Zap className="h-4 w-4" />
               </div>
               <div>
                 <h4 className="font-semibold text-white text-sm">ATS Scorer & Optimizer</h4>
-                <p className="text-xs text-gray-400">Scan resumes against job postings and auto-improve bullets.</p>
+                <p className="text-xs text-gray-400">Scan resumes against job descriptions and auto-optimize bullet points.</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="p-1 rounded bg-emerald-500/20 text-emerald-400 mt-1">
+            <div className="flex items-start gap-3 text-left p-3 rounded-lg bg-gray-900/40 border border-gray-800/40">
+              <div className="p-1.5 rounded bg-emerald-500/20 text-emerald-400 mt-0.5">
                 <Star className="h-4 w-4" />
               </div>
               <div>
                 <h4 className="font-semibold text-white text-sm">Voice Mock Interviews</h4>
-                <p className="text-xs text-gray-400">Conduct interactive webcam sessions with audio transcript evaluations.</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="p-1 rounded bg-purple-500/20 text-purple-400 mt-1">
-                <Terminal className="h-4 w-4" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-white text-sm">Coding & Projects Scanner</h4>
-                <p className="text-xs text-gray-400">Solve DSA tasks and scan GitHub repository documentation structures.</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="p-1 rounded bg-sky-500/20 text-sky-400 mt-1">
-                <Shield className="h-4 w-4" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-white text-sm">Portfolio Generator</h4>
-                <p className="text-xs text-gray-400">Build single-page web portfolios and export source codes instantly.</p>
+                <p className="text-xs text-gray-400">Conduct interactive sessions with real-time speech synthesis and analysis.</p>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Right Side: Auth Card */}
-        <div className="lg:col-span-5">
-          <div className="glass-card rounded-2xl p-8 border border-gray-800 shadow-2xl relative">
-            <h2 className="text-2xl font-bold text-white mb-2">
-              {isRegister ? "Create Account" : "Welcome Back"}
-            </h2>
-            <p className="text-sm text-gray-400 mb-6">
-              {isRegister ? "Join CareerPilot AI today to start prepping" : "Sign in to access your placement dashboard"}
-            </p>
-
-            {error && (
-              <div className="p-3 mb-4 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-400">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleAuth} className="space-y-4">
-              {isRegister && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Full Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="John Doe"
-                    className="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Password</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-3 rounded-lg shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {loading ? "Authenticating..." : isRegister ? "Sign Up" : "Sign In"}
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </form>
-
-            <div className="relative flex py-4 items-center">
-              <div className="flex-grow border-t border-gray-800"></div>
-              <span className="flex-shrink mx-4 text-gray-500 text-xs uppercase tracking-wider">or</span>
-              <div className="flex-grow border-t border-gray-800"></div>
-            </div>
-
-            {/* Guest Session Button */}
-            <button
-              onClick={handleGuestMode}
-              disabled={loading}
-              className="w-full bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 font-semibold text-sm py-3 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              Enter Guest Mode (Quick Access)
-              <ArrowRight className="h-4 w-4" />
-            </button>
-
-            <p className="text-center text-xs text-gray-500 mt-6">
-              {isRegister ? "Already have an account?" : "Don't have an account yet?"}{" "}
-              <button 
-                onClick={() => setIsRegister(!isRegister)} 
-                className="text-indigo-400 hover:underline font-semibold"
-              >
-                {isRegister ? "Sign In" : "Sign Up"}
-              </button>
-            </p>
-          </div>
-        </div>
-
+        )}
+        
       </div>
     </main>
   );
